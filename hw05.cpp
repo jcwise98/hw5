@@ -17,6 +17,9 @@ GLFWwindow* window;
 // Include GLM
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
+#include <glm/gtx/transform2.hpp>
+
 using namespace glm;
 using namespace std;
 
@@ -26,22 +29,70 @@ using namespace std;
 #include <common/objloader.hpp>
 #include <glm/gtx/spline.hpp>
 #include <glm/ext.hpp>
+
+glm::vec3 lerp(glm::vec3 p0, glm::vec3 p1, float t)
+{
+	return glm::vec3(
+		p0.x + (p1.x - p0.x) * t,
+		p0.y + (p1.y - p0.y) * t,
+		p0.z + (p1.z - p0.z) * t
+	);
+}
+
+glm::vec3 catmullRom(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, float t)
+{
+	glm::vec3 a = p1 * 2.0f;
+	glm::vec3 b = (-p0 + p2) * t;
+	glm::vec3 c = (p0 * 2.0f - p1 * 5.0f + p2 * 4.0f - p3) * t * t;
+	glm::vec3 d = (-p0 + p1 * 3.0f - p2 * 3.0f + p3) * t * t * t;
+	return (a + b + c + d) * 0.5f;
+}
+
+std::vector<glm::vec3> computeCameraPositions(std::vector<glm::vec3> controls, int times)
+{
+	std::vector<glm::vec3> points;
+	size_t size = controls.size();
+	for (int i = 0; i < size; i++)
+	{
+		for (int j = 0; j < times; j++)
+		{
+			float t = (float)j / (float)times;
+			glm::vec3 p0 = controls[(i - 1) % size];
+			glm::vec3 p1 = controls[i];
+			glm::vec3 p2 = controls[(i + 1) % size];
+			glm::vec3 p3 = controls[(i + 2) % size];
+			points.push_back(catmullRom(p0, p1, p2, p3, t));
+		}
+	}
+
+	return points;
+}
+
 enum class Player { RED, BLUE };
 
 class GamePiece {
-	public:
-		Player player;
-		int row;
-		int col;
+public:
 
-		GamePiece(Player p, int r, int c) {
-			player = p;
-			row = r;
-			col = c;
+	static const int FRAME_LENGTH = 2000;
+
+	glm::mat4 model;
+	Player player;
+	int row;
+	int col;
+	int frame;
+
+	GamePiece::GamePiece(Player p, int r, int c): player(p), model(1.0), row(r), col(c), frame(0) {
+		model *= glm::mat4(1.0) * glm::translate(glm::vec3(0, -5, -3 + c));
+	}
+
+	void GamePiece::update() {
+		if (frame <= FRAME_LENGTH) {
+			model = glm::mat4(1.0) * glm::translate(lerp(glm::vec3(0, -5, -3 + col), glm::vec3(0, 2.5 - row, -3 + col), (float)(++frame) / (6 - row) * FRAME_LENGTH));
 		}
+	}
 };
 
-GamePiece ***gameboard; //6 rows, 7 columns
+GamePiece*** gameboard; //6 rows, 7 columns
 Player active; //red or blue
 bool isEnd = false; //if the game has ended by meeting a condition(red win, blue win, draw)
 bool isDraw = false;
@@ -56,43 +107,43 @@ bool checkWin(int row, int col) {
 	int diagonal2 = 1;
 
 	//check vertical
-	for(int i=row+1; i<6 && gameboard[i][col]->player==active; i++) {vertical++;} //up
-	for(int i=row-1; i>=0 && gameboard[i][col]->player==active; i--) {vertical++;} //down
-	if(vertical >= 4)return true;
+	for (int i = row + 1; i < 6 && gameboard[i][col]->player == active; i++) { vertical++; } //up
+	for (int i = row - 1; i >= 0 && gameboard[i][col]->player == active; i--) { vertical++; } //down
+	if (vertical >= 4)return true;
 
 	//check horizontal
-	for(int j=col-1; j>=0 && gameboard[row][j]->player==active; j--){horizontal++;} //left
-	for(int j=col+1; j<7 && gameboard[row][j]->player==active; j++){horizontal++;} //right
-	if(horizontal >= 4) return true;
+	for (int j = col - 1; j >= 0 && gameboard[row][j]->player == active; j--) { horizontal++; } //left
+	for (int j = col + 1; j < 7 && gameboard[row][j]->player == active; j++) { horizontal++; } //right
+	if (horizontal >= 4) return true;
 
 	//check diagonal 1
-	for(int i=row-1, j=col-1; i>=0 && j>=0 && gameboard[i][j]->player==active; i--,j--){diagonal1++;} //up and left
-	for(int i=row+1, j=col+1; i<6 && j<7 && gameboard[i][j]->player==active; i++,j++){diagonal1++;} //down and right
-	if(diagonal1 >= 4) return true;
+	for (int i = row - 1, j = col - 1; i >= 0 && j >= 0 && gameboard[i][j]->player == active; i--, j--) { diagonal1++; } //up and left
+	for (int i = row + 1, j = col + 1; i < 6 && j < 7 && gameboard[i][j]->player == active; i++, j++) { diagonal1++; } //down and right
+	if (diagonal1 >= 4) return true;
 
 	//check diagonal 2
-	for(int i=row-1, j=col+1; i>=0 && j<7 && gameboard[i][j]->player==active; i--,j++){diagonal2++;} //up and right
-	for(int i=row+1, j=col-1; i<6 && j>=0 && gameboard[i][j]->player==active; i++,j--){diagonal2++;} //down and left
-	if(diagonal2 >= 4) return true;
+	for (int i = row - 1, j = col + 1; i >= 0 && j < 7 && gameboard[i][j]->player == active; i--, j++) { diagonal2++; } //up and right
+	for (int i = row + 1, j = col - 1; i < 6 && j >= 0 && gameboard[i][j]->player == active; i++, j--) { diagonal2++; } //down and left
+	if (diagonal2 >= 4) return true;
 
 	return false;
 }
 
 void checkEnd(int row, int col) {
-	if(placeCount==42) {
+	if (placeCount == 42) {
 		isDraw = true;
-	} 
-	if(checkWin(row, col)) {
-		if(active==Player::RED) redWin=true;
-		if(active==Player::BLUE) blueWin=true;
+	}
+	if (checkWin(row, col)) {
+		if (active == Player::RED) redWin = true;
+		if (active == Player::BLUE) blueWin = true;
 	}
 }
 
 bool placePiece(Player current, int col) {
 	cout << "Hello" << endl;
 	//check row to be placed in
-	for(int i=5; i>=0; i++) {
-		if(gameboard[i][col] == nullptr) {
+	for (int i = 5; i >= 0; i--) {
+		if (gameboard[i][col] == nullptr) {
 			gameboard[i][col] = new GamePiece(current, i, col);
 			placeCount++;
 			//checkEnd(i, col);
@@ -108,12 +159,12 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 }
 
 
-int main( void )
+int main(void)
 {
 	// Initialise GLFW
-	if( !glfwInit() )
+	if (!glfwInit())
 	{
-		fprintf( stderr, "Failed to initialize GLFW\n" );
+		fprintf(stderr, "Failed to initialize GLFW\n");
 		getchar();
 		return -1;
 	}
@@ -125,9 +176,9 @@ int main( void )
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	// Open a window and create its OpenGL context
-	window = glfwCreateWindow( 1024, 768, "HW4", NULL, NULL);
-	if( window == NULL ){
-		fprintf( stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n" );
+	window = glfwCreateWindow(1024, 768, "HW4", NULL, NULL);
+	if (window == NULL) {
+		fprintf(stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n");
 		getchar();
 		glfwTerminate();
 		return -1;
@@ -143,75 +194,85 @@ int main( void )
 		return -1;
 	}
 
-	// Ensure we can capture the escape key being pressed below
+	// Resource Initialization
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
-    // Hide the mouse and enable unlimited mouvement
-    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    
-    // Set the mouse at the center of the screen
-    glfwPollEvents();
-    //glfwSetCursorPos(window, 1024/2, 768/2);
-
-	// Dark blue background
-	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
-
-	// Enable depth test
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwPollEvents();
+	glfwSetCursorPos(window, 1024 / 2, 768 / 2);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glEnable(GL_DEPTH_TEST);
-	// Accept fragment if it closer to the camera than the former one
-	glDepthFunc(GL_LESS); 
-
-	// Cull triangles which normal is not towards the camera
+	glDepthFunc(GL_LESS);
 	glEnable(GL_CULL_FACE);
 
 	GLuint VertexArrayID;
 	glGenVertexArrays(1, &VertexArrayID);
 	glBindVertexArray(VertexArrayID);
 
-	// Create and compile our GLSL program from the shaders
-	GLuint programID = LoadShaders( "TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader" );
-
-	// Get a handle for our "MVP" uniform
+	GLuint programID = LoadShaders("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
 	GLuint MatrixID = glGetUniformLocation(programID, "MVP");
 
-	// Load the texture
-	//GLuint Texture = loadDDS("uvmap.DDS");
-	//GLuint Texture = loadBMP_custom("rock.bmp");
-	
-	// Get a handle for our "myTextureSampler" uniform
-	GLuint TextureID  = glGetUniformLocation(programID, "myTextureSampler");
+	// Textures
+	GLuint TextureID = glGetUniformLocation(programID, "myTextureSampler");
+	GLuint BlueTexture = loadDDS("Blue.dds");
+	GLuint YellowTexture = loadDDS("Yellow.dds");
+	GLuint RedTexture = loadDDS("Red.dds");
 
 	// Read our .obj file
-	//std::vector<glm::vec3> vertices;
-	//std::vector<glm::vec2> uvs;
-	//std::vector<glm::vec3> normals; // Won't be used at the moment.
-	//bool res = loadOBJ("stone.obj", vertices, uvs, normals);
+	std::vector<glm::vec3> vertices;
+	std::vector<glm::vec2> uvs;
+	std::vector<glm::vec3> normals; // Won't be used at the moment.
+	loadOBJ("Board.obj", vertices, uvs, normals);
 
-	// Load it into a VBO
+	std::vector<glm::vec3> coinvertices;
+	std::vector<glm::vec2> coinuvs;
+	std::vector<glm::vec3> coinnormals; // Won't be used at the moment.
+	loadOBJ("Coin.obj", coinvertices, coinuvs, coinnormals);
 
-	//GLuint vertexbuffer;
-	//glGenBuffers(1, &vertexbuffer);
-	//glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-	//glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
+	std::vector<glm::vec3> controlPoints;
+	/*controlPoints.push_back(glm::vec3(11, -3, 0));
+	controlPoints.push_back(glm::vec3(11, -3, 0));
+	controlPoints.push_back(glm::vec3(11, -3, 0));*/
+	controlPoints.push_back(glm::vec3(11, -3, 0));
+	//controlPoints.push_back(glm::vec3(0, -3, 11));
+	//controlPoints.push_back(glm::vec3(-11, -3, 0));
+	//controlPoints.push_back(glm::vec3(0, -3, -11));
 
-	//GLuint uvbuffer;
-	//glGenBuffers(1, &uvbuffer);
-	//glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-	//glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2), &uvs[0], GL_STATIC_DRAW);
+	std::vector<glm::vec3> cameraPoints = computeCameraPositions(controlPoints, 500);
+	int index = 0;
 
-	//glfwSetKeyCallback(window, key_callback);
-	
+	GLuint vertexbuffer;
+	glGenBuffers(1, &vertexbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
+
+	GLuint uvbuffer;
+	glGenBuffers(1, &uvbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+	glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2), &uvs[0], GL_STATIC_DRAW);
+
+	GLuint coinvertexbuffer;
+	glGenBuffers(1, &coinvertexbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, coinvertexbuffer);
+	glBufferData(GL_ARRAY_BUFFER, coinvertices.size() * sizeof(glm::vec3), &coinvertices[0], GL_STATIC_DRAW);
+
+	GLuint coinuvbuffer;
+	glGenBuffers(1, &coinuvbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, coinuvbuffer);
+	glBufferData(GL_ARRAY_BUFFER, coinuvs.size() * sizeof(glm::vec2), &coinuvs[0], GL_STATIC_DRAW);
+
+
 	//initialize gameboard
-	gameboard = new GamePiece**[6];
-	for(int i=0; i<6; i++) {
-		gameboard[i] = new GamePiece*[7];
-		for(int j=0; j<7;j++) {
-			gameboard[i][j] = nullptr;
+	gameboard = new GamePiece * *[6];
+	for (int i = 0; i < 6; i++) {
+		gameboard[i] = new GamePiece * [7];
+		for (int j = 0; j < 7; j++) {
+			gameboard[i][j] = new GamePiece(Player::RED, i, j);
 		}
 	}
 
 	active = Player::RED;
 	bool pressed = false; //check if a key is pressed
-	do{
+	do {
 		if (!isEnd) {
 			int placeCol = 0;
 			int placeRow = 0;
@@ -309,83 +370,88 @@ int main( void )
 			}
 		}
 
+		// Game update
+		for (int y = 0; y < 6; y++) {
+			for (int x = 0; x < 7; x++) {
+				GamePiece* piece = gameboard[y][x];
+				if (piece != nullptr) {
+					piece->update();
+				}
+			}
+		}
+
 		// Clear the screen
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Use our shader
 		glUseProgram(programID);
+		glUniform1i(TextureID, 0);
+		glActiveTexture(GL_TEXTURE0);
 
 		// Compute the MVP matrix from keyboard and mouse input
-		//computeMatricesFromInputs();
-		//glm::mat4 ProjectionMatrix = getProjectionMatrix();
-		glm::mat4 ProjectionMatrix = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
-		//glm::mat4 ViewMatrix = getViewMatrix();
-		glm::mat4 ViewMatrix = glm::lookAt(
-										glm::vec3(0, 0, 2),           
-										glm::vec3(0, 0, 0), 
-										glm::vec3(0, 1, 0)                  
-		);
+		computeMatricesFromInputs();
+		glm::mat4 ProjectionMatrix = getProjectionMatrix();
+		glm::mat4 ViewMatrix = glm::lookAt(cameraPoints[index], glm::vec3(0, 0, 0), glm::vec3(0, -1, 0));//getViewMatrix();
 		glm::mat4 ModelMatrix = glm::mat4(1.0);
-		glm::mat4 MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
+		glm::mat4 MVP;
 
-		// Send our transformation to the currently bound shader, 
-		// in the "MVP" uniform
-		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
-
-		// Bind our texture in Texture Unit 0
-		//glActiveTexture(GL_TEXTURE0);
-		//glBindTexture(GL_TEXTURE_2D, Texture);
-		// Set our "myTextureSampler" sampler to use Texture Unit 0
-		//glUniform1i(TextureID, 0);
-
-		// 1rst attribute buffer : vertices
+		// DRAWING BOARD ------------------------------------------------------------
+		glBindTexture(GL_TEXTURE_2D, BlueTexture);
 		glEnableVertexAttribArray(0);
-		//glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-		glVertexAttribPointer(
-			0,                  // attribute
-			3,                  // size
-			GL_FLOAT,           // type
-			GL_FALSE,           // normalized?
-			0,                  // stride
-			(void*)0            // array buffer offset
-		);
-
-		// 2nd attribute buffer : UVs
+		glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 		glEnableVertexAttribArray(1);
-		//glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-		glVertexAttribPointer(
-			1,                                // attribute
-			2,                                // size
-			GL_FLOAT,                         // type
-			GL_FALSE,                         // normalized?
-			0,                                // stride
-			(void*)0                          // array buffer offset
-		);
+		glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
-		// Draw the triangle !
-		//glDrawArrays(GL_TRIANGLES, 0, vertices.size() );
-
+		MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
+		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 		glDisableVertexAttribArray(0);
 		glDisableVertexAttribArray(1);
 
-		// Swap buffers
+		// DRAWING COIN ------------------------------------------------------------
+		glBindTexture(GL_TEXTURE_2D, YellowTexture);
+		glEnableVertexAttribArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, coinvertexbuffer);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+		glEnableVertexAttribArray(1);
+		glBindBuffer(GL_ARRAY_BUFFER, coinuvbuffer);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+		for (int y = 0; y < 6; y++) {
+			for (int x = 0; x < 7; x++) {
+				GamePiece* piece = gameboard[y][x];
+				if (piece != nullptr) {
+					MVP = ProjectionMatrix * ViewMatrix * piece->model;
+					glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+					glDrawArrays(GL_TRIANGLES, 0, coinvertices.size());
+					cout << "draw" << "(" << piece->col << "," << piece->row << ")(" << x << "," << y << ")" << endl;
+				}
+			}
+		}
+
+
+		// END DRAWING ------------------------------------------------------------
+
+		glDisableVertexAttribArray(0);
+		glDisableVertexAttribArray(1);
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 
 	} // Check if the ESC key was pressed or the window was closed
-	while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
-		   glfwWindowShouldClose(window) == 0);
+	while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
+		glfwWindowShouldClose(window) == 0);
 
 	// Cleanup VBO and shader
-	//glDeleteBuffers(1, &vertexbuffer);
-	//glDeleteBuffers(1, &uvbuffer);
+	glDeleteBuffers(1, &vertexbuffer);
+	glDeleteBuffers(1, &uvbuffer);
+	glDeleteBuffers(1, &coinvertexbuffer);
+	glDeleteBuffers(1, &coinuvbuffer);
 	glDeleteProgram(programID);
-	//glDeleteTextures(1, &Texture);
+	glDeleteTextures(1, &BlueTexture);
+	glDeleteTextures(1, &YellowTexture);
+	glDeleteTextures(1, &RedTexture);
 	glDeleteVertexArrays(1, &VertexArrayID);
-
-	// Close OpenGL window and terminate GLFW
 	glfwTerminate();
-
 	return 0;
 }
-
