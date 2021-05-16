@@ -50,29 +50,31 @@ bool blueWin = false;
 int placeCount = 0;
 
 bool checkWin(int row, int col) {
+	cout << "checkWin" << endl;
+	cout << "row: " << row << ", col: " << col << endl;
 	int vertical = 1;
 	int horizontal = 1;
 	int diagonal1 = 1;
 	int diagonal2 = 1;
 
 	//check vertical
-	for(int i=row+1; i<6 && gameboard[i][col]->player==active; i++) {vertical++;} //up
-	for(int i=row-1; i>=0 && gameboard[i][col]->player==active; i--) {vertical++;} //down
+	for (int i = row + 1; i < 6 && gameboard[i][col] != nullptr && gameboard[i][col]->player == active; i++) { vertical++; } //down
+	//for(int i=row-1; i>=0 && gameboard[i][col] != nullptr && gameboard[i][col]->player==active; i--) {vertical++;} //up
 	if(vertical >= 4)return true;
 
 	//check horizontal
-	for(int j=col-1; j>=0 && gameboard[row][j]->player==active; j--){horizontal++;} //left
-	for(int j=col+1; j<7 && gameboard[row][j]->player==active; j++){horizontal++;} //right
+	for(int j=col-1; j>=0 && gameboard[row][j] != nullptr && gameboard[row][j]->player==active; j--){horizontal++;} //left
+	for(int j=col+1; j<7 && gameboard[row][j] != nullptr && gameboard[row][j]->player==active; j++){horizontal++;} //right
 	if(horizontal >= 4) return true;
 
 	//check diagonal 1
-	for(int i=row-1, j=col-1; i>=0 && j>=0 && gameboard[i][j]->player==active; i--,j--){diagonal1++;} //up and left
-	for(int i=row+1, j=col+1; i<6 && j<7 && gameboard[i][j]->player==active; i++,j++){diagonal1++;} //down and right
+	//for(int i=row-1, j=col-1; i>=0 && j>=0 && gameboard[i][j] != nullptr && gameboard[i][j]->player==active; i--,j--){diagonal1++;} //up and left
+	for(int i=row+1, j=col+1; i<6 && j<7 && gameboard[i][j] != nullptr && gameboard[i][j]->player==active; i++,j++){diagonal1++;} //down and right
 	if(diagonal1 >= 4) return true;
 
 	//check diagonal 2
-	for(int i=row-1, j=col+1; i>=0 && j<7 && gameboard[i][j]->player==active; i--,j++){diagonal2++;} //up and right
-	for(int i=row+1, j=col-1; i<6 && j>=0 && gameboard[i][j]->player==active; i++,j--){diagonal2++;} //down and left
+	//for(int i=row-1, j=col+1; i>=0 && j<7 && gameboard[i][j] != nullptr && gameboard[i][j]->player==active; i--,j++){diagonal2++;} //up and right
+	for(int i=row+1, j=col-1; i<6 && j>=0 && gameboard[i][j] != nullptr && gameboard[i][j]->player==active; i++,j--){diagonal2++;} //down and left
 	if(diagonal2 >= 4) return true;
 
 	return false;
@@ -89,13 +91,14 @@ void checkEnd(int row, int col) {
 }
 
 bool placePiece(Player current, int col) {
-	cout << "Hello" << endl;
 	//check row to be placed in
-	for(int i=5; i>=0; i++) {
+	for(int i=5; i>=0; i--) {
+		cout << "attempt row " << i << endl;
 		if(gameboard[i][col] == nullptr) {
+			cout << "placed in row: " << i << endl;
 			gameboard[i][col] = new GamePiece(current, i, col);
 			placeCount++;
-			//checkEnd(i, col);
+			checkEnd(i, col);
 			return true; //move is valid if spot is empty
 		}
 	}
@@ -225,68 +228,49 @@ int main( void )
 					validPlace = placePiece(active, placeCol);
 					pressed = true;
 				}
-			}
-			else {
-				pressed = false;
-			}
-			if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
+			} else if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
 				if (!pressed) {
 					cout << "column2" << endl;
 					placeCol = 1;
 					validPlace = placePiece(active, placeCol);
+					pressed = true;
 				}
-			}
-			else {
-				pressed = false;
-			}
-			if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) {
+			} else if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) {
 				if (!pressed) {
 					cout << "column3" << endl;
 					placeCol = 2;
 					validPlace = placePiece(active, placeCol);
+					pressed = true;
 				}
-			}
-			else {
-				pressed = false;
-			}
-			if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS) {
+			} else if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS) {
 				if (!pressed) {
 					cout << "column4" << endl;
 					placeCol = 3;
 					validPlace = placePiece(active, placeCol);
+					pressed = true;
 				}
-			}
-			else {
-				pressed = false;
-			}
-			if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS) {
+			} else if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS) {
 				if (!pressed) {
 					cout << "column5" << endl;
 					placeCol = 4;
 					validPlace = placePiece(active, placeCol);
+					pressed = true;
 				}
-			}
-			else {
-				pressed = false;
-			}
-			if (glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS) {
+			} else if (glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS) {
 				if (!pressed) {
 					cout << "column6" << endl;
 					placeCol = 5;
 					validPlace = placePiece(active, placeCol);
+					pressed = true;
 				}
-			}
-			else {
-				pressed = false;
-			}
-			if (glfwGetKey(window, GLFW_KEY_7) == GLFW_PRESS) {
+			} else if (glfwGetKey(window, GLFW_KEY_7) == GLFW_PRESS) {
 				if (!pressed) {
 					cout << "column7" << endl;
 					placeCol = 6;
 					validPlace = placePiece(active, placeCol);
+					pressed = true;
 				}
-			}
-			else {
+			} else {
 				pressed = false;
 			}
 
@@ -295,6 +279,7 @@ int main( void )
 					//do end game stuff here
 					if (redWin) cout << "Congratulations Red player!" << endl;
 					if (blueWin) cout << "Congratulations Blue player!" << endl;
+					if (isDraw) cout << "Draw!" << endl;
 					isEnd = true;
 				}
 				else {
