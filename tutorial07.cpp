@@ -23,6 +23,52 @@ using namespace glm;
 #include <common/controls.hpp>
 #include <common/objloader.hpp>
 
+glm::vec3 lerp(glm::vec3 p0, glm::vec3 p1, float t)
+{
+	return glm::vec3(
+		p0.x + (p1.x - p0.x) * t,
+		p0.y + (p1.y - p0.y) * t,
+		p0.z + (p1.z - p0.z) * t
+	);
+}
+
+enum class Player { RED, BLUE };
+
+class GamePiece
+{
+
+public:
+	static const int FRAME_LENGTH = 2000;
+
+	glm::mat4 model;
+	Player player;
+	int row, column;
+	int frame_index;
+
+	GamePiece::GamePiece(Player mplayer, int mrow, int mcolumn) :
+		model(1.0),
+		player(mplayer),
+		row(mrow),
+		column(mcolumn),
+		frame_index(0)
+	{
+		model *= glm::translate(glm::vec3(0, -5, -3 + column));
+	}
+
+	void GamePiece::update() // should scale based off distance piece travels
+	{
+		if (frame_index <= FRAME_LENGTH)
+		{
+			frame_index++;
+			model = glm::mat4(1.0) * glm::translate(lerp(glm::vec3(0, -5, -3 + column), glm::vec3(0, 2.5 - row, -3 + column), (float)(++frame_index) / FRAME_LENGTH));
+		}
+	}
+
+
+
+
+};
+
 glm::vec3 catmullRom(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, float t)
 {
 	glm::vec3 a = p1 * 2.0f;
@@ -52,12 +98,12 @@ std::vector<glm::vec3> computeCameraPositions(std::vector<glm::vec3> controls, i
 	return points;
 }
 
-int main( void )
+int main(void)
 {
 	// Initialise	 GLFW
-	if( !glfwInit() )
+	if (!glfwInit())
 	{
-		fprintf( stderr, "Failed to initialize GLFW\n" );
+		fprintf(stderr, "Failed to initialize GLFW\n");
 		getchar();
 		return -1;
 	}
@@ -69,9 +115,9 @@ int main( void )
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	// Open a window and create its OpenGL context
-	window = glfwCreateWindow( 1024, 768, "Tutorial 07 - Model Loading", NULL, NULL);
-	if( window == NULL ){
-		fprintf( stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n" );
+	window = glfwCreateWindow(1024, 768, "Tutorial 07 - Model Loading", NULL, NULL);
+	if (window == NULL) {
+		fprintf(stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n");
 		getchar();
 		glfwTerminate();
 		return -1;
@@ -88,19 +134,19 @@ int main( void )
 	}
 
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glfwPollEvents();
-    glfwSetCursorPos(window, 1024/2, 768/2);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwPollEvents();
+	glfwSetCursorPos(window, 1024 / 2, 768 / 2);
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS); 
+	glDepthFunc(GL_LESS);
 	glEnable(GL_CULL_FACE);
 
 	GLuint VertexArrayID;
 	glGenVertexArrays(1, &VertexArrayID);
 	glBindVertexArray(VertexArrayID);
 
-	GLuint programID = LoadShaders( "TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader" );
+	GLuint programID = LoadShaders("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
 	GLuint MatrixID = glGetUniformLocation(programID, "MVP");
 
 	// Textures
@@ -109,9 +155,9 @@ int main( void )
 	GLuint YellowTexture = loadDDS("Yellow.dds");
 	GLuint RedTexture = loadDDS("Red.dds");
 
-	
+
 	// Get a handle for our "myTextureSampler" uniform
-	
+
 
 	// Read our .obj file
 	std::vector<glm::vec3> vertices;
@@ -125,13 +171,13 @@ int main( void )
 	loadOBJ("Coin.obj", coinvertices, coinuvs, coinnormals);
 
 	std::vector<glm::vec3> controlPoints;
-	controlPoints.push_back(glm::vec3(11, 0, 0));
-	controlPoints.push_back(glm::vec3(11, 0, 0));
-	controlPoints.push_back(glm::vec3(11, 0, 0));
-	controlPoints.push_back(glm::vec3(11, 0, 0));
-	//controlPoints.push_back(glm::vec3(0, 0, 11));
-	//controlPoints.push_back(glm::vec3(-11, 0, 0));
-	//controlPoints.push_back(glm::vec3(0, 0, -11));
+	/*controlPoints.push_back(glm::vec3(11, -3, 0));
+	controlPoints.push_back(glm::vec3(11, -3, 0));
+	controlPoints.push_back(glm::vec3(11, -3, 0));*/
+	controlPoints.push_back(glm::vec3(11, -3, 0));
+	//controlPoints.push_back(glm::vec3(0, -3, 11));
+	//controlPoints.push_back(glm::vec3(-11, -3, 0));
+	//controlPoints.push_back(glm::vec3(0, -3, -11));
 
 	bool paused = false;
 	bool pressed = false;
@@ -158,7 +204,9 @@ int main( void )
 	glBindBuffer(GL_ARRAY_BUFFER, coinuvbuffer);
 	glBufferData(GL_ARRAY_BUFFER, coinuvs.size() * sizeof(glm::vec2), &coinuvs[0], GL_STATIC_DRAW);
 
-	do{
+	GamePiece test(Player::BLUE, 0, 0);
+
+	do {
 		if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
 		{
 			if (!pressed)
@@ -169,7 +217,7 @@ int main( void )
 		}
 		else pressed = false;
 		if (!paused) index = (index + 1) % cameraPoints.size();
-		
+
 		// Clear the screen
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -196,7 +244,7 @@ int main( void )
 
 		MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
-		glDrawArrays(GL_TRIANGLES, 0, vertices.size() );
+		glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 
 		// DRAWING COIN ------------------------------------------------------------
 		glBindTexture(GL_TEXTURE_2D, YellowTexture);
@@ -207,7 +255,9 @@ int main( void )
 		glBindBuffer(GL_ARRAY_BUFFER, coinuvbuffer);
 		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
-		MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
+		test.update();
+
+		MVP = ProjectionMatrix * ViewMatrix * test.model;
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 		glDrawArrays(GL_TRIANGLES, 0, coinvertices.size());
 
@@ -220,8 +270,8 @@ int main( void )
 		glfwPollEvents();
 
 	} // Check if the ESC key was pressed or the window was closed
-	while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
-		   glfwWindowShouldClose(window) == 0 );
+	while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
+		glfwWindowShouldClose(window) == 0);
 
 	// Cleanup VBO and shader
 	glDeleteBuffers(1, &vertexbuffer);
