@@ -26,10 +26,9 @@ using namespace std;
 #include <common/objloader.hpp>
 #include <glm/gtx/spline.hpp>
 #include <glm/ext.hpp>
+enum class Player { RED, BLUE };
 
-enum class Player {RED, BLUE};
-
-Class GamePiece {
+class GamePiece {
 	public:
 		Player player;
 		int row;
@@ -42,7 +41,7 @@ Class GamePiece {
 		}
 };
 
-GamePiece **gameboard; //6 rows, 7 columns
+GamePiece ***gameboard; //6 rows, 7 columns
 Player active; //red or blue
 bool isEnd = false; //if the game has ended by meeting a condition(red win, blue win, draw)
 bool isDraw = false;
@@ -57,58 +56,55 @@ bool checkWin(int row, int col) {
 	int diagonal2 = 1;
 
 	//check vertical
-	for(int i=row+1; i<6 && gameboard[i][col].player==active; i++) {vertical++;} //up
-	for(int i=row-1; i>=0 && gameboard[i][col].player==active; i--) {vertical++;} //down
+	for(int i=row+1; i<6 && gameboard[i][col]->player==active; i++) {vertical++;} //up
+	for(int i=row-1; i>=0 && gameboard[i][col]->player==active; i--) {vertical++;} //down
 	if(vertical >= 4)return true;
 
 	//check horizontal
-	for(int j=col-1; j>=0 && gameboard[row][j].player==active; j--){horizontal++;} //left
-	for(int j=col+1; j<7 && gameboard[row][j].player==active; j++){horizontal++;} //right
+	for(int j=col-1; j>=0 && gameboard[row][j]->player==active; j--){horizontal++;} //left
+	for(int j=col+1; j<7 && gameboard[row][j]->player==active; j++){horizontal++;} //right
 	if(horizontal >= 4) return true;
 
 	//check diagonal 1
-	for(int i=row-1, j=col-1; i>=0 && j>=0 && gameboard[i][j].player==active; i--,j--){diagonal1++;} //up and left
-	for(int i=row+1, j=col+1; i<6 && j<7 && gameboard[i][j].player==active; i++,j++){diagonal1++;} //down and right
+	for(int i=row-1, j=col-1; i>=0 && j>=0 && gameboard[i][j]->player==active; i--,j--){diagonal1++;} //up and left
+	for(int i=row+1, j=col+1; i<6 && j<7 && gameboard[i][j]->player==active; i++,j++){diagonal1++;} //down and right
 	if(diagonal1 >= 4) return true;
 
 	//check diagonal 2
-	for(int i=row-1, j=col+1; i>=0 && j<7 && gameboard[i][j].player==active; i--,j++){diagonal2++;} //up and right
-	for(int i=row+1, j=col-1; i<6 && j>=0 && gameboard[i][j].player==active; i++,j--){diagonal2++;} //down and left
+	for(int i=row-1, j=col+1; i>=0 && j<7 && gameboard[i][j]->player==active; i--,j++){diagonal2++;} //up and right
+	for(int i=row+1, j=col-1; i<6 && j>=0 && gameboard[i][j]->player==active; i++,j--){diagonal2++;} //down and left
 	if(diagonal2 >= 4) return true;
 
 	return false;
 }
 
-bool checkEnd() {
+void checkEnd(int row, int col) {
 	if(placeCount==42) {
-		isDraw == true;
-		return true;
+		isDraw = true;
 	} 
-	if(checkWin()) {
-		if(active==RED) redWin=true;
-		if(active==BLUE) blueWin=true;
-		return true;
+	if(checkWin(row, col)) {
+		if(active==Player::RED) redWin=true;
+		if(active==Player::BLUE) blueWin=true;
 	}
-	
-	return false;
 }
 
 bool placePiece(Player current, int col) {
+	cout << "Hello" << endl;
 	//check row to be placed in
 	for(int i=5; i>=0; i++) {
 		if(gameboard[i][col] == nullptr) {
 			gameboard[i][col] = new GamePiece(current, i, col);
 			placeCount++;
+			//checkEnd(i, col);
 			return true; //move is valid if spot is empty
 		}
 	}
 	return false; //invalid move since column is full
 }
 
-
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-	if (key == GLFW_KEY_P && action == GLFW_PRESS)
-		is_paused = !is_paused;
+	//if (key == GLFW_KEY_P && action == GLFW_PRESS)
+		//is_paused = !is_paused;
 }
 
 
@@ -150,11 +146,11 @@ int main( void )
 	// Ensure we can capture the escape key being pressed below
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     // Hide the mouse and enable unlimited mouvement
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     
     // Set the mouse at the center of the screen
     glfwPollEvents();
-    glfwSetCursorPos(window, 1024/2, 768/2);
+    //glfwSetCursorPos(window, 1024/2, 768/2);
 
 	// Dark blue background
 	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
@@ -192,36 +188,125 @@ int main( void )
 
 	// Load it into a VBO
 
-	GLuint vertexbuffer;
-	glGenBuffers(1, &vertexbuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
+	//GLuint vertexbuffer;
+	//glGenBuffers(1, &vertexbuffer);
+	//glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+	//glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
 
-	GLuint uvbuffer;
-	glGenBuffers(1, &uvbuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-	glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2), &uvs[0], GL_STATIC_DRAW);
+	//GLuint uvbuffer;
+	//glGenBuffers(1, &uvbuffer);
+	//glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+	//glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2), &uvs[0], GL_STATIC_DRAW);
 
-	glfwSetKeyCallback(window, key_callback);
+	//glfwSetKeyCallback(window, key_callback);
 	
 	//initialize gameboard
-	gameboard = new GamePiece*[6];
+	gameboard = new GamePiece**[6];
 	for(int i=0; i<6; i++) {
-		gameboard[i] = new GamePiece[7];
+		gameboard[i] = new GamePiece*[7];
 		for(int j=0; j<7;j++) {
 			gameboard[i][j] = nullptr;
 		}
 	}
 
-	active = RED;
+	active = Player::RED;
+	bool pressed = false; //check if a key is pressed
 	do{
-		int placeCol = 0;
-		//get user input here
+		if (!isEnd) {
+			int placeCol = 0;
+			int placeRow = 0;
+			bool validPlace = false;
+			//get user input here
 
-		while(!placePiece(active, placeCol));
+			if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
+				if (!pressed) {
+					cout << "column1" << endl;
+					placeCol = 0;
+					validPlace = placePiece(active, placeCol);
+					pressed = true;
+				}
+			}
+			else {
+				pressed = false;
+			}
+			if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
+				if (!pressed) {
+					cout << "column2" << endl;
+					placeCol = 1;
+					validPlace = placePiece(active, placeCol);
+				}
+			}
+			else {
+				pressed = false;
+			}
+			if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) {
+				if (!pressed) {
+					cout << "column3" << endl;
+					placeCol = 2;
+					validPlace = placePiece(active, placeCol);
+				}
+			}
+			else {
+				pressed = false;
+			}
+			if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS) {
+				if (!pressed) {
+					cout << "column4" << endl;
+					placeCol = 3;
+					validPlace = placePiece(active, placeCol);
+				}
+			}
+			else {
+				pressed = false;
+			}
+			if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS) {
+				if (!pressed) {
+					cout << "column5" << endl;
+					placeCol = 4;
+					validPlace = placePiece(active, placeCol);
+				}
+			}
+			else {
+				pressed = false;
+			}
+			if (glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS) {
+				if (!pressed) {
+					cout << "column6" << endl;
+					placeCol = 5;
+					validPlace = placePiece(active, placeCol);
+				}
+			}
+			else {
+				pressed = false;
+			}
+			if (glfwGetKey(window, GLFW_KEY_7) == GLFW_PRESS) {
+				if (!pressed) {
+					cout << "column7" << endl;
+					placeCol = 6;
+					validPlace = placePiece(active, placeCol);
+				}
+			}
+			else {
+				pressed = false;
+			}
 
-		if(checkEnd()) {
-			//do endgame stuff here
+			if (validPlace) {
+				if (isDraw || redWin || blueWin) {
+					//do end game stuff here
+					if (redWin) cout << "Congratulations Red player!" << endl;
+					if (blueWin) cout << "Congratulations Blue player!" << endl;
+					isEnd = true;
+				}
+				else {
+					//switch player
+					if (active == Player::RED) {
+						active = Player::BLUE;
+					}
+					else if (active == Player::BLUE) {
+						active = Player::RED;
+					}
+				}
+			}
 		}
 
 		// Clear the screen
@@ -248,14 +333,14 @@ int main( void )
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 
 		// Bind our texture in Texture Unit 0
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, Texture);
+		//glActiveTexture(GL_TEXTURE0);
+		//glBindTexture(GL_TEXTURE_2D, Texture);
 		// Set our "myTextureSampler" sampler to use Texture Unit 0
-		glUniform1i(TextureID, 0);
+		//glUniform1i(TextureID, 0);
 
 		// 1rst attribute buffer : vertices
 		glEnableVertexAttribArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+		//glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
 		glVertexAttribPointer(
 			0,                  // attribute
 			3,                  // size
@@ -267,7 +352,7 @@ int main( void )
 
 		// 2nd attribute buffer : UVs
 		glEnableVertexAttribArray(1);
-		glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+		//glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
 		glVertexAttribPointer(
 			1,                                // attribute
 			2,                                // size
@@ -278,7 +363,7 @@ int main( void )
 		);
 
 		// Draw the triangle !
-		glDrawArrays(GL_TRIANGLES, 0, vertices.size() );
+		//glDrawArrays(GL_TRIANGLES, 0, vertices.size() );
 
 		glDisableVertexAttribArray(0);
 		glDisableVertexAttribArray(1);
@@ -286,24 +371,16 @@ int main( void )
 		// Swap buffers
 		glfwSwapBuffers(window);
 		glfwPollEvents();
-		//Sleep(1);
-
-		//switch player
-		if(active==RED) {
-			active==BLUE;
-		} else if(active==BLUE){
-			active==RED;
-		}
 
 	} // Check if the ESC key was pressed or the window was closed
 	while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
 		   glfwWindowShouldClose(window) == 0);
 
 	// Cleanup VBO and shader
-	glDeleteBuffers(1, &vertexbuffer);
-	glDeleteBuffers(1, &uvbuffer);
+	//glDeleteBuffers(1, &vertexbuffer);
+	//glDeleteBuffers(1, &uvbuffer);
 	glDeleteProgram(programID);
-	glDeleteTextures(1, &Texture);
+	//glDeleteTextures(1, &Texture);
 	glDeleteVertexArrays(1, &VertexArrayID);
 
 	// Close OpenGL window and terminate GLFW
