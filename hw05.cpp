@@ -68,7 +68,7 @@ std::vector<glm::vec3> computeCameraPositions(std::vector<glm::vec3> controls, i
 	return points;
 }
 
-enum class Player { RED, BLUE };
+enum class Player { RED, YELLOW };
 
 class GamePiece {
 public:
@@ -87,43 +87,45 @@ public:
 
 	void GamePiece::update() {
 		if (frame <= FRAME_LENGTH) {
-			model = glm::mat4(1.0) * glm::translate(lerp(glm::vec3(0, -5, -3 + col), glm::vec3(0, 2.5 - row, -3 + col), (float)(++frame) / FRAME_LENGTH));
+			model = glm::mat4(1.0) * glm::translate(lerp(glm::vec3(0, -5, -3 + col), glm::vec3(0, row - 2.5, -3 + col), (float)(++frame) / FRAME_LENGTH));
 		}
 	}
 };
 
 GamePiece*** gameboard; //6 rows, 7 columns
-Player active; //red or blue
-bool isEnd = false; //if the game has ended by meeting a condition(red win, blue win, draw)
+Player active; //red or yellow
+bool isEnd = false; //if the game has ended by meeting a condition(red win, yellow win, draw)
 bool isDraw = false;
 bool redWin = false;
-bool blueWin = false;
+bool yellowWin = false;
 int placeCount = 0;
 
 bool checkWin(int row, int col) {
+	cout << "checkWin" << endl;
+	cout << "row: " << row << ", col: " << col << endl;
 	int vertical = 1;
 	int horizontal = 1;
 	int diagonal1 = 1;
 	int diagonal2 = 1;
 
 	//check vertical
-	for (int i = row + 1; i < 6 && gameboard[i][col]->player == active; i++) { vertical++; } //up
-	for (int i = row - 1; i >= 0 && gameboard[i][col]->player == active; i--) { vertical++; } //down
+	for (int i = row + 1; i < 6 && gameboard[i][col] != nullptr && gameboard[i][col]->player == active; i++) { vertical++; } //down
+	//for(int i=row-1; i>=0 && gameboard[i][col] != nullptr && gameboard[i][col]->player==active; i--) {vertical++;} //up
 	if (vertical >= 4)return true;
 
 	//check horizontal
-	for (int j = col - 1; j >= 0 && gameboard[row][j]->player == active; j--) { horizontal++; } //left
-	for (int j = col + 1; j < 7 && gameboard[row][j]->player == active; j++) { horizontal++; } //right
+	for (int j = col - 1; j >= 0 && gameboard[row][j] != nullptr && gameboard[row][j]->player == active; j--) { horizontal++; } //left
+	for (int j = col + 1; j < 7 && gameboard[row][j] != nullptr && gameboard[row][j]->player == active; j++) { horizontal++; } //right
 	if (horizontal >= 4) return true;
 
 	//check diagonal 1
-	for (int i = row - 1, j = col - 1; i >= 0 && j >= 0 && gameboard[i][j]->player == active; i--, j--) { diagonal1++; } //up and left
-	for (int i = row + 1, j = col + 1; i < 6 && j < 7 && gameboard[i][j]->player == active; i++, j++) { diagonal1++; } //down and right
+	//for(int i=row-1, j=col-1; i>=0 && j>=0 && gameboard[i][j] != nullptr && gameboard[i][j]->player==active; i--,j--){diagonal1++;} //up and left
+	for (int i = row + 1, j = col + 1; i < 6 && j < 7 && gameboard[i][j] != nullptr && gameboard[i][j]->player == active; i++, j++) { diagonal1++; } //down and right
 	if (diagonal1 >= 4) return true;
 
 	//check diagonal 2
-	for (int i = row - 1, j = col + 1; i >= 0 && j < 7 && gameboard[i][j]->player == active; i--, j++) { diagonal2++; } //up and right
-	for (int i = row + 1, j = col - 1; i < 6 && j >= 0 && gameboard[i][j]->player == active; i++, j--) { diagonal2++; } //down and left
+	//for(int i=row-1, j=col+1; i>=0 && j<7 && gameboard[i][j] != nullptr && gameboard[i][j]->player==active; i--,j++){diagonal2++;} //up and right
+	for (int i = row + 1, j = col - 1; i < 6 && j >= 0 && gameboard[i][j] != nullptr && gameboard[i][j]->player == active; i++, j--) { diagonal2++; } //down and left
 	if (diagonal2 >= 4) return true;
 
 	return false;
@@ -135,18 +137,19 @@ void checkEnd(int row, int col) {
 	}
 	if (checkWin(row, col)) {
 		if (active == Player::RED) redWin = true;
-		if (active == Player::BLUE) blueWin = true;
+		if (active == Player::YELLOW) yellowWin = true;
 	}
 }
 
 bool placePiece(Player current, int col) {
-	cout << "Hello" << endl;
 	//check row to be placed in
 	for (int i = 5; i >= 0; i--) {
+		cout << "attempt row " << i << endl;
 		if (gameboard[i][col] == nullptr) {
+			cout << "placed in row: " << i << endl;
 			gameboard[i][col] = new GamePiece(current, i, col);
 			placeCount++;
-			//checkEnd(i, col);
+			checkEnd(i, col);
 			return true; //move is valid if spot is empty
 		}
 	}
@@ -196,9 +199,9 @@ int main(void)
 
 	// Resource Initialization
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwPollEvents();
-	glfwSetCursorPos(window, 1024 / 2, 768 / 2);
+	//glfwSetCursorPos(window, 1024 / 2, 768 / 2);
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
@@ -266,7 +269,7 @@ int main(void)
 	for (int i = 0; i < 6; i++) {
 		gameboard[i] = new GamePiece * [7];
 		for (int j = 0; j < 7; j++) {
-			gameboard[i][j] = new GamePiece(Player::RED, i, j);
+			gameboard[i][j] = nullptr;
 		}
 	}
 
@@ -287,64 +290,52 @@ int main(void)
 					pressed = true;
 				}
 			}
-			else {
-				pressed = false;
-			}
-			if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
+			else if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
 				if (!pressed) {
 					cout << "column2" << endl;
 					placeCol = 1;
 					validPlace = placePiece(active, placeCol);
+					pressed = true;
 				}
 			}
-			else {
-				pressed = false;
-			}
-			if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) {
+			else if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) {
 				if (!pressed) {
 					cout << "column3" << endl;
 					placeCol = 2;
 					validPlace = placePiece(active, placeCol);
+					pressed = true;
 				}
 			}
-			else {
-				pressed = false;
-			}
-			if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS) {
+			else if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS) {
 				if (!pressed) {
 					cout << "column4" << endl;
 					placeCol = 3;
 					validPlace = placePiece(active, placeCol);
+					pressed = true;
 				}
 			}
-			else {
-				pressed = false;
-			}
-			if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS) {
+			else if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS) {
 				if (!pressed) {
 					cout << "column5" << endl;
 					placeCol = 4;
 					validPlace = placePiece(active, placeCol);
+					pressed = true;
 				}
 			}
-			else {
-				pressed = false;
-			}
-			if (glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS) {
+			else if (glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS) {
 				if (!pressed) {
 					cout << "column6" << endl;
 					placeCol = 5;
 					validPlace = placePiece(active, placeCol);
+					pressed = true;
 				}
 			}
-			else {
-				pressed = false;
-			}
-			if (glfwGetKey(window, GLFW_KEY_7) == GLFW_PRESS) {
+			else if (glfwGetKey(window, GLFW_KEY_7) == GLFW_PRESS) {
 				if (!pressed) {
 					cout << "column7" << endl;
 					placeCol = 6;
 					validPlace = placePiece(active, placeCol);
+					pressed = true;
 				}
 			}
 			else {
@@ -352,18 +343,18 @@ int main(void)
 			}
 
 			if (validPlace) {
-				if (isDraw || redWin || blueWin) {
+				if (isDraw || redWin || yellowWin) {
 					//do end game stuff here
 					if (redWin) cout << "Congratulations Red player!" << endl;
-					if (blueWin) cout << "Congratulations Blue player!" << endl;
+					if (yellowWin) cout << "Congratulations Yellow player!" << endl;
 					isEnd = true;
 				}
 				else {
 					//switch player
 					if (active == Player::RED) {
-						active = Player::BLUE;
+						active = Player::YELLOW;
 					}
-					else if (active == Player::BLUE) {
+					else if (active == Player::YELLOW) {
 						active = Player::RED;
 					}
 				}
@@ -389,8 +380,8 @@ int main(void)
 		glActiveTexture(GL_TEXTURE0);
 
 		// Compute the MVP matrix from keyboard and mouse input
-		computeMatricesFromInputs();
-		glm::mat4 ProjectionMatrix = getProjectionMatrix();
+		//computeMatricesFromInputs();
+		glm::mat4 ProjectionMatrix = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
 		glm::mat4 ViewMatrix = glm::lookAt(cameraPoints[index], glm::vec3(0, 0, 0), glm::vec3(0, -1, 0));//getViewMatrix();
 		glm::mat4 ModelMatrix = glm::mat4(1.0);
 		glm::mat4 MVP;
@@ -411,6 +402,25 @@ int main(void)
 		glDisableVertexAttribArray(1);
 
 		// DRAWING COIN ------------------------------------------------------------
+		glBindTexture(GL_TEXTURE_2D, RedTexture);
+		glEnableVertexAttribArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, coinvertexbuffer);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+		glEnableVertexAttribArray(1);
+		glBindBuffer(GL_ARRAY_BUFFER, coinuvbuffer);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+		for (int y = 0; y < 6; y++) {
+			for (int x = 0; x < 7; x++) {
+				GamePiece* piece = gameboard[y][x];
+				if (piece != nullptr && piece->player == Player::RED) {
+					MVP = ProjectionMatrix * ViewMatrix * piece->model;
+					glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+					glDrawArrays(GL_TRIANGLES, 0, coinvertices.size());
+					//cout << "draw" << "(" << piece->col << "," << piece->row << ")(" << x << "," << y << ")" << endl;
+				}
+			}
+		}
+
 		glBindTexture(GL_TEXTURE_2D, YellowTexture);
 		glEnableVertexAttribArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, coinvertexbuffer);
@@ -421,11 +431,11 @@ int main(void)
 		for (int y = 0; y < 6; y++) {
 			for (int x = 0; x < 7; x++) {
 				GamePiece* piece = gameboard[y][x];
-				if (piece != nullptr) {
+				if (piece != nullptr && piece->player == Player::YELLOW) {
 					MVP = ProjectionMatrix * ViewMatrix * piece->model;
 					glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 					glDrawArrays(GL_TRIANGLES, 0, coinvertices.size());
-					cout << "draw" << "(" << piece->col << "," << piece->row << ")(" << x << "," << y << ")" << endl;
+					//cout << "draw" << "(" << piece->col << "," << piece->row << ")(" << x << "," << y << ")" << endl;
 				}
 			}
 		}
