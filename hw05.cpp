@@ -87,7 +87,7 @@ public:
 
 	void GamePiece::update() {
 		if (frame <= FRAME_LENGTH) {
-			model = glm::mat4(1.0) * glm::translate(lerp(glm::vec3(0, -5, -3 + col), glm::vec3(0, 2.5 - row, -3 + col), (float)(++frame) / (6 - row) * FRAME_LENGTH));
+			model = glm::mat4(1.0) * glm::translate(lerp(glm::vec3(0, -5, -3 + col), glm::vec3(0, 2.5 - row, -3 + col), (float)(++frame) / FRAME_LENGTH));
 		}
 	}
 };
