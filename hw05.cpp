@@ -276,7 +276,16 @@ int main(void)
 		}
 	}
 
-	active = Player::RED;
+	//randomize starting player
+	srand(time(NULL));
+	int result = rand() % 2;
+	cout << result << endl;
+	if (result) {
+		active = Player::RED;
+	}
+	else {
+		active = Player::YELLOW;
+	}
 	bool pressed = false; //check if a key is pressed
 	do {
 		char text[256];
