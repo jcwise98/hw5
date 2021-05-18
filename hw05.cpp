@@ -27,6 +27,7 @@ using namespace std;
 #include <common/texture.hpp>
 #include <common/controls.hpp>
 #include <common/objloader.hpp>
+#include <common/text2D.hpp>
 #include <glm/gtx/spline.hpp>
 #include <glm/ext.hpp>
 
@@ -263,6 +264,8 @@ int main(void)
 	glBindBuffer(GL_ARRAY_BUFFER, coinuvbuffer);
 	glBufferData(GL_ARRAY_BUFFER, coinuvs.size() * sizeof(glm::vec2), &coinuvs[0], GL_STATIC_DRAW);
 
+	initText2D("Holstein.DDS");
+
 
 	//initialize gameboard
 	gameboard = new GamePiece * *[6];
@@ -276,7 +279,10 @@ int main(void)
 	active = Player::RED;
 	bool pressed = false; //check if a key is pressed
 	do {
+		char text[256];
 		if (!isEnd) {
+			if (active == Player::RED) sprintf(text, "Red Player's Turn");
+			if (active == Player::YELLOW) sprintf(text, "Yellow Player's Turn");
 			int placeCol = 0;
 			int placeRow = 0;
 			bool validPlace = false;
@@ -345,8 +351,14 @@ int main(void)
 			if (validPlace) {
 				if (isDraw || redWin || yellowWin) {
 					//do end game stuff here
-					if (redWin) cout << "Congratulations Red player!" << endl;
-					if (yellowWin) cout << "Congratulations Yellow player!" << endl;
+					if (redWin) {
+						cout << "Congratulations Red player!" << endl;
+						sprintf(text, "Red player wins!");
+					}
+					if (yellowWin) {
+						cout << "Congratulations Yellow player!" << endl;
+						sprintf(text, "Yellow player wins!");
+					}
 					isEnd = true;
 				}
 				else {
@@ -439,6 +451,8 @@ int main(void)
 				}
 			}
 		}
+
+		printText2D(text, 100, 500, 30);
 
 
 		// END DRAWING ------------------------------------------------------------
