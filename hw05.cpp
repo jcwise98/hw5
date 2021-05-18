@@ -120,12 +120,12 @@ bool checkWin(int row, int col) {
 	if (horizontal >= 4) return true;
 
 	//check diagonal 1
-	//for(int i=row-1, j=col-1; i>=0 && j>=0 && gameboard[i][j] != nullptr && gameboard[i][j]->player==active; i--,j--){diagonal1++;} //up and left
+	for(int i=row-1, j=col-1; i>=0 && j>=0 && gameboard[i][j] != nullptr && gameboard[i][j]->player==active; i--,j--){diagonal1++;} //up and left
 	for (int i = row + 1, j = col + 1; i < 6 && j < 7 && gameboard[i][j] != nullptr && gameboard[i][j]->player == active; i++, j++) { diagonal1++; } //down and right
 	if (diagonal1 >= 4) return true;
 
 	//check diagonal 2
-	//for(int i=row-1, j=col+1; i>=0 && j<7 && gameboard[i][j] != nullptr && gameboard[i][j]->player==active; i--,j++){diagonal2++;} //up and right
+	for(int i=row-1, j=col+1; i>=0 && j<7 && gameboard[i][j] != nullptr && gameboard[i][j]->player==active; i--,j++){diagonal2++;} //up and right
 	for (int i = row + 1, j = col - 1; i < 6 && j >= 0 && gameboard[i][j] != nullptr && gameboard[i][j]->player == active; i++, j--) { diagonal2++; } //down and left
 	if (diagonal2 >= 4) return true;
 
