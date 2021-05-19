@@ -11,7 +11,7 @@ At least one texture-mapped element
 - The board and player pieces are texture mapped elements
 
 At least one 3-d element which is lit with diffuse and/or specular lighting
-- The board is has lighting
+- The board has lighting
 
 A scoreboard or other text-based overlay
 - A text overlay for the status of the game (whose turn it is and or who won the game) is used
