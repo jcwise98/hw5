@@ -203,7 +203,8 @@ int main(void)
 	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwPollEvents();
 	//glfwSetCursorPos(window, 1024 / 2, 768 / 2);
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	//glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClearColor(0.0f, 0.0f, 0.1f, 0.0f);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 	glEnable(GL_CULL_FACE);
@@ -214,9 +215,12 @@ int main(void)
 
 	GLuint programID = LoadShaders("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
 	GLuint MatrixID = glGetUniformLocation(programID, "MVP");
+	GLuint ViewMatrixID = glGetUniformLocation(programID, "V");
+	GLuint ModelMatrixID = glGetUniformLocation(programID, "M");
 
 	// Textures
 	GLuint TextureID = glGetUniformLocation(programID, "myTextureSampler");
+	GLuint LightID = glGetUniformLocation(programID, "LightPosition_worldspace");
 	GLuint BlueTexture = loadDDS("Blue.dds");
 	GLuint YellowTexture = loadDDS("Yellow.dds");
 	GLuint RedTexture = loadDDS("Red.dds");
@@ -404,6 +408,8 @@ int main(void)
 		//computeMatricesFromInputs();
 		glm::mat4 ProjectionMatrix = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
 		glm::mat4 ViewMatrix = glm::lookAt(cameraPoints[index], glm::vec3(0, 0, 0), glm::vec3(0, -1, 0));//getViewMatrix();
+		//glm::mat4 ProjectionMatrix = getProjectionMatrix();
+		//glm::mat4 ViewMatrix = getViewMatrix();
 		glm::mat4 ModelMatrix = glm::mat4(1.0);
 		glm::mat4 MVP;
 
@@ -418,6 +424,13 @@ int main(void)
 
 		MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+		glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, &ModelMatrix[0][0]);
+		glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, &ViewMatrix[0][0]);
+
+		glm::vec3 lightPos = glm::vec3(-5, -0.5, 0);
+		glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
+
+
 		glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 		glDisableVertexAttribArray(0);
 		glDisableVertexAttribArray(1);
@@ -436,6 +449,7 @@ int main(void)
 				if (piece != nullptr && piece->player == Player::RED) {
 					MVP = ProjectionMatrix * ViewMatrix * piece->model;
 					glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+					//glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, &ViewMatrix[0][0]);
 					glDrawArrays(GL_TRIANGLES, 0, coinvertices.size());
 					//cout << "draw" << "(" << piece->col << "," << piece->row << ")(" << x << "," << y << ")" << endl;
 				}
